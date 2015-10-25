@@ -35,7 +35,7 @@ class ControlFlowNode():
         instr = action[0]
         var = action[1]
         if instr == Actions.SetNone:
-            varValues[var] = MaybeNone
+            varValues[var] = VarValues.MaybeNone
         elif instr == Actions.SetNotNone:
             varValues[var] = VarValues.NotNone
         elif instr == Actions.CheckNone:
@@ -44,19 +44,17 @@ class ControlFlowNode():
             varValues[var] = VarValues.MaybeNone
         elif instr == Actions.Deref:
             if var in varValues and varValues[var] == VarValues.MaybeNone:
-                print 'adding error'
                 errors.add(self.errorString(var))
             else:
                 varValues[var] = VarValues.NotNone
         else:
             raise ValueException('ExecuteAction: Unsupported action')
-            
 
     def walkCFGComputingErrors(self, errors, varValues):
         for action in self.actions:
             self.executeAction(action, errors, varValues)
+        valsCopy = copy(varValues)
         for childNode in self.children:
-            valsCopy = copy(varValues)
             childNode.walkCFGComputingErrors(errors, valsCopy)
         return errors
 
@@ -71,5 +69,3 @@ class Actions:
 
 class VarValues:
     MaybeNone, NotNone = range(2)
-
-defaultVarValue = VarValues.NotNone

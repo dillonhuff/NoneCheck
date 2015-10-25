@@ -3,7 +3,7 @@ import sys
 
 from NoneVisitor import *
 
-dirName = '/Users/dillon/PythonWorkspace/httpie'
+dirName = '/Users/dillon/PythonWorkspace/pandas'
 
 x = NoneVisitor()
 numExceptions = 0

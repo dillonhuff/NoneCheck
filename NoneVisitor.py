@@ -19,17 +19,16 @@ class NoneVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         body = node.body
         cftRoot = ControlFlowNode(self.currentFile, node.name)
-        self.execNodes([cftRoot], body)
+        self.execBody(cftRoot, body)
         self.addErrors(cftRoot)
 
-    def execNodes(self, cfNodes, stmtNodes):
+    def execBody(self, cfNode, stmtNodes):
         if len(stmtNodes) == 0:
-            return cfNodes
+            return cfNode
         nextStmt = stmtNodes[0]
-        nextCFTNodes = []
-        for cfNode in cfNodes:
-            nextCFTNodes += self.execNode(cfNode, nextStmt)
-        return self.execNodes(nextCFTNodes, stmtNodes[1:])
+        nextCFTNode = cfNode
+        for stmt in stmtNodes:
+            nextCFTNode = self.execNode(cfNode, nextStmt)
 
     def execNode(self, cfNode, stmtNode):
         if isinstance(stmtNode, Assign):
@@ -45,75 +44,77 @@ class NoneVisitor(ast.NodeVisitor):
         elif isinstance(stmtNode, Expr):
             return self.execNode(cfNode, stmtNode.value)
         elif isinstance(stmtNode, Num):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Print):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, BinOp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Str):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, List):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Call):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Dict):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Assert):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Attribute):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, BoolOp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, UnaryOp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, For):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, While):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, IfExp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, TryExcept):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Subscript):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, TryFinally):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, FunctionDef):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Pass):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Compare):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, ListComp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, With):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Lambda):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Delete):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Raise):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, ImportFrom):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Import):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, GeneratorExp):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Yield):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, AugAssign):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, Tuple):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
         elif isinstance(stmtNode, ClassDef):
-            return [cfNode.newChild()]
+            return cfNode.newChild()
+        elif isinstance(stmtNode, Global):
+            return cfNode.newChild()
         else:
             raise ValueError('execNode: unsupported stmt\n' + ast.dump(stmtNode))
 
     def execName(self, cfNode, nameNode):
         cfNode.deref(nameNode.id)
-        return [cfNode.newChild()]
+        return cfNode.newChild()
 
     def execAssign(self, cfNode, assignNode):
         newNode = cfNode.newChild()
@@ -122,7 +123,7 @@ class NoneVisitor(ast.NodeVisitor):
             for idNode in assignNode.targets:
                 if isinstance(idNode, Name):
                     newNode.setNone(idNode.id)
-            return [newNode]
+            return newNode
         else:
             for idNode in assignNode.targets:
                 if isinstance(idNode, Name):
@@ -137,7 +138,10 @@ class NoneVisitor(ast.NodeVisitor):
     
     def execCond(self, cfNode, test, tBody, fBody):
         testResNode = self.execTest(cfNode, test)
-        return self.execNodes([testResNode], tBody) + self.execNodes([testResNode], fBody)
+        resultNodes = [self.execBody([testResNode], tBody), self.execBody([testResNode], fBody)]
+        resNode = ControlFlowNode(testResNode.fileName, testResNode.funcName)
+        map(lambda n: n.children.append(resNode), resultNodes)
+        return resNode
 
     def execTest(self, cfNode, testExpr):
         testResNode = cfNode.newChild()
@@ -158,15 +162,12 @@ class NoneVisitor(ast.NodeVisitor):
 
     def execCall(self, cfNode, callNode):
         self.callerShouldntBeNone(cfNode, callNode)
-        resNodes = self.execNodes([cfNode.newChild()], callNode.args)
+        resNodes = self.execBody(cfNode.newChild(), callNode.args)
         return resNodes
 
     def addErrors(self, cft):
         for error in cft.computeErrors():
             self.errors.add(error)
-
-        # for child in cft.children:
-        #     self.addErrors(child)
 
     def printErrors(self):
         print ''
