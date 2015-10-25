@@ -23,12 +23,10 @@ class NoneVisitor(ast.NodeVisitor):
         self.addErrors(cftRoot)
 
     def execBody(self, cfNode, stmtNodes):
-        if len(stmtNodes) == 0:
-            return cfNode
-        nextStmt = stmtNodes[0]
         nextCFTNode = cfNode
         for stmt in stmtNodes:
-            nextCFTNode = self.execNode(cfNode, nextStmt)
+            nextCFTNode = self.execNode(nextCFTNode, stmt)
+        return nextCFTNode
 
     def execNode(self, cfNode, stmtNode):
         if isinstance(stmtNode, Assign):
@@ -128,7 +126,7 @@ class NoneVisitor(ast.NodeVisitor):
             for idNode in assignNode.targets:
                 if isinstance(idNode, Name):
                     newNode.setNotNone(idNode.id)
-            return self.execNode(cfNode, valNode)
+            return self.execNode(newNode, valNode)
 
     def execIf(self, cfNode, ifNode):
         test = ifNode.test
@@ -138,9 +136,9 @@ class NoneVisitor(ast.NodeVisitor):
     
     def execCond(self, cfNode, test, tBody, fBody):
         testResNode = self.execTest(cfNode, test)
-        resultNodes = [self.execBody([testResNode], tBody), self.execBody([testResNode], fBody)]
+        resultNodes = [self.execBody(testResNode, tBody), self.execBody(testResNode, fBody)]
         resNode = ControlFlowNode(testResNode.fileName, testResNode.funcName)
-        map(lambda n: n.children.append(resNode), resultNodes)
+        map(lambda n: n.children.add(resNode), resultNodes)
         return resNode
 
     def execTest(self, cfNode, testExpr):
