@@ -14,10 +14,12 @@ for root, dirs, files in os.walk(dirName):
             print path
             try:
                 parsedFile = ast.parse(open(path, "r").read())
+                x.currentFile = path
                 x.visit(parsedFile)
             except Exception, e:
                 numExceptions += 1
                 print 'Error: Could not parse file, exception: %s' % e
+
 x.printErrors()
 print ''
 print 'Number of exceptions', numExceptions

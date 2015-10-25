@@ -8,6 +8,7 @@ class NoneVisitor(ast.NodeVisitor):
 
     def __init__(self):
         self.errors = set()
+        self.currentFile = 'NO_FILE'
 
     def numErrors(self):
         return len(self.errors)
@@ -17,7 +18,7 @@ class NoneVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         body = node.body
-        cftRoot = ControlFlowNode()
+        cftRoot = ControlFlowNode(self.currentFile, node.name)
         self.execNodes([cftRoot], body)
         self.addErrors(cftRoot)
 
@@ -33,16 +34,16 @@ class NoneVisitor(ast.NodeVisitor):
     def execNode(self, cfNode, stmtNode):
         if isinstance(stmtNode, Assign):
             return self.execAssign(cfNode, stmtNode)
-        elif isinstance(stmtNode, If):
-            return self.execIf(cfNode, stmtNode)
         elif isinstance(stmtNode, Return):
             return self.execReturn(cfNode, stmtNode)
         elif isinstance(stmtNode, Call):
             return self.execCall(cfNode, stmtNode)
-        elif isinstance(stmtNode, Expr):
-            return self.execNode(cfNode, stmtNode.value)
         elif isinstance(stmtNode, Name):
             return self.execName(cfNode, stmtNode)
+        elif isinstance(stmtNode, If):
+            return self.execIf(cfNode, stmtNode)
+        elif isinstance(stmtNode, Expr):
+            return self.execNode(cfNode, stmtNode.value)
         elif isinstance(stmtNode, Num):
             return [cfNode.newChild()]
         elif isinstance(stmtNode, Print):
@@ -103,12 +104,15 @@ class NoneVisitor(ast.NodeVisitor):
             return [cfNode.newChild()]
         elif isinstance(stmtNode, AugAssign):
             return [cfNode.newChild()]
+        elif isinstance(stmtNode, Tuple):
+            return [cfNode.newChild()]
+        elif isinstance(stmtNode, ClassDef):
+            return [cfNode.newChild()]
         else:
             raise ValueError('execNode: unsupported stmt\n' + ast.dump(stmtNode))
 
     def execName(self, cfNode, nameNode):
-#        print 'execName id use'
-        cfNode.shouldntBeNone(nameNode.id)
+        cfNode.deref(nameNode.id)
         return [cfNode.newChild()]
 
     def execAssign(self, cfNode, assignNode):
@@ -129,9 +133,8 @@ class NoneVisitor(ast.NodeVisitor):
         test = ifNode.test
         tBody = ifNode.body
         fBody = ifNode.orelse
-        ifNodes = self.execCond(cfNode, test, tBody, fBody)
-        return self.execNodes(ifNodes, tBody) + self.execNodes(ifNodes, fBody)
-
+        return self.execCond(cfNode, test, tBody, fBody)
+    
     def execCond(self, cfNode, test, tBody, fBody):
         testResNode = self.execTest(cfNode, test)
         return self.execNodes([testResNode], tBody) + self.execNodes([testResNode], fBody)
@@ -140,7 +143,7 @@ class NoneVisitor(ast.NodeVisitor):
         testResNode = cfNode.newChild()
         if isNoneTest(testExpr):
             v = extractTestVars(testExpr)[0]
-            testResNode.maybeNone(v)
+            testResNode.checkNone(v)
         return testResNode
 
     def execReturn(self, cfNode, retNode):
@@ -150,9 +153,8 @@ class NoneVisitor(ast.NodeVisitor):
         if isinstance(callNode.func, Attribute):
             attr = callNode.func
             if isinstance(attr.value, Name):
-#                print 'callerShouldntBeNone id'
                 callerName = attr.value.id
-                cfNode.shouldntBeNone(callerName)
+                cfNode.deref(callerName)
 
     def execCall(self, cfNode, callNode):
         self.callerShouldntBeNone(cfNode, callNode)
@@ -163,11 +165,14 @@ class NoneVisitor(ast.NodeVisitor):
         for error in cft.computeErrors():
             self.errors.add(error)
 
-        for child in cft.children:
-            self.addErrors(child)
+        # for child in cft.children:
+        #     self.addErrors(child)
 
     def printErrors(self):
-        print str(len(self.errors)) + 'ERRORS'
+        print ''
+        print '--------------- ERROR REPORT --------------'
+        print 'Number of errors:', str(len(self.errors))
         for error in self.errors:
             print error
-        print str(len(self.errors)) + 'ERRORS'
+        print '-------------------------------------------'
+        print ''
