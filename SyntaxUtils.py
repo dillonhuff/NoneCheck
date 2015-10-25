@@ -6,10 +6,12 @@ def extractTestVars(testExpr):
     return vars
             
 def isNone(valNode):
-    return isinstance(valNode, Name) and valNode.id == "None"
+    isNoneName = isinstance(valNode, Name) and valNode.id == "None"
+    return isNoneName
 
 def isNoneTest(testExpr):
-    if isinstance(testExpr, Compare):
-        return True
+    if isinstance(testExpr, Compare) and len(testExpr.ops) == 1:
+        if isinstance(testExpr.ops[0], Is):
+            return isNone(testExpr.left) or isNone(testExpr.comparators[0])
     return False
 
