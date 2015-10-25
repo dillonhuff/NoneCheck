@@ -40,8 +40,16 @@ class NoneVisitor(ast.NodeVisitor):
             return self.execCall(cfNode, stmtNode)
         elif isinstance(stmtNode, Expr):
             return self.execStmt(cfNode, stmtNode.value)
+        elif isinstance(stmtNode, Name):
+            return self.execName(cfNode, stmtNode)
+        elif isinstance(stmtNode, Num):
+            return [cfNode]
         else:
             raise ValueError('execStmt: unsupported stmt\n' + ast.dump(stmtNode))
+
+    def execName(self, cfNode, nameNode):
+        cfNode.shouldntBeNone(nameNode.id)
+        return [cfNode]
 
     def execAssign(self, cfNode, assignNode):
         newNode = cfNode.newChild()
@@ -49,16 +57,18 @@ class NoneVisitor(ast.NodeVisitor):
         if self.isNone(valNode):
             for idNode in assignNode.targets:
                 newNode.setNone(idNode.id)
+            return [newNode]
         else:
             for idNode in assignNode.targets:
                 newNode.setNotNone(idNode.id)
-        return [newNode]
+            return self.execStmt(cfNode, valNode)
 
     def execIf(self, cfNode, ifNode):
         test = ifNode.test
         tBody = ifNode.body
         fBody = ifNode.orelse
-        return self.execCond(cfNode, test, tBody, fBody)
+        ifNodes = self.execCond(cfNode, test, tBody, fBody)
+        return self.execStmts(ifNodes, tBody) + self.execStmts(ifNodes, fBody)
 
     def execCond(self, cfNode, test, tBody, fBody):
         testResNode = self.execTest(cfNode, test)
@@ -72,18 +82,18 @@ class NoneVisitor(ast.NodeVisitor):
         return testResNode
 
     def execReturn(self, cfNode, retNode):
-        return [cfNode]
+        return self.execStmt(cfNode, retNode.value)
 
     def callerShouldntBeNone(self, cfNode, callNode):
         if isinstance(callNode.func, Attribute):
             attr = callNode.func
             callerName = attr.value.id
-            print callerName, 'shouldnt be none'
             cfNode.shouldntBeNone(callerName)
 
     def execCall(self, cfNode, callNode):
         self.callerShouldntBeNone(cfNode, callNode)
-        return [cfNode]
+        resNodes = self.execStmts([cfNode], callNode.args)
+        return resNodes
 
     def isNoneTest(self, testExpr):
         if isinstance(testExpr, Compare):
