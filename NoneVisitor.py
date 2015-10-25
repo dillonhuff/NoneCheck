@@ -2,6 +2,7 @@ import ast
 from _ast import *
 
 from ControlFlowNode import *
+from SyntaxUtils import *
 
 class NoneVisitor(ast.NodeVisitor):
 
@@ -44,6 +45,40 @@ class NoneVisitor(ast.NodeVisitor):
             return self.execName(cfNode, stmtNode)
         elif isinstance(stmtNode, Num):
             return [cfNode]
+        elif isinstance(stmtNode, Print):
+            return [cfNode]
+        elif isinstance(stmtNode, BinOp):
+            return [cfNode]
+        elif isinstance(stmtNode, Str):
+            return [cfNode]
+        elif isinstance(stmtNode, List):
+            return [cfNode]
+        elif isinstance(stmtNode, Call):
+            return [cfNode]
+        elif isinstance(stmtNode, Dict):
+            return [cfNode]
+        elif isinstance(stmtNode, Assert):
+            return [cfNode]
+        elif isinstance(stmtNode, Attribute):
+            return [cfNode]
+        elif isinstance(stmtNode, BoolOp):
+            return [cfNode]
+        elif isinstance(stmtNode, UnaryOp):
+            return [cfNode]
+        elif isinstance(stmtNode, For):
+            return [cfNode]
+        elif isinstance(stmtNode, While):
+            return [cfNode]
+        elif isinstance(stmtNode, IfExp):
+            return [cfNode]
+        elif isinstance(stmtNode, TryExcept):
+            return [cfNode]
+        elif isinstance(stmtNode, Subscript):
+            return [cfNode]
+        elif isinstance(stmtNode, TryFinally):
+            return [cfNode]
+        elif isinstance(stmtNode, FunctionDef):
+            return [cfNode]
         else:
             raise ValueError('execStmt: unsupported stmt\n' + ast.dump(stmtNode))
 
@@ -54,7 +89,7 @@ class NoneVisitor(ast.NodeVisitor):
     def execAssign(self, cfNode, assignNode):
         newNode = cfNode.newChild()
         valNode = assignNode.value
-        if self.isNone(valNode):
+        if isNone(valNode):
             for idNode in assignNode.targets:
                 newNode.setNone(idNode.id)
             return [newNode]
@@ -76,8 +111,8 @@ class NoneVisitor(ast.NodeVisitor):
 
     def execTest(self, cfNode, testExpr):
         testResNode = cfNode.newChild()
-        if (self.isNoneTest(testExpr)):
-            v = self.extractTestVars(testExpr)[0]
+        if isNoneTest(testExpr):
+            v = extractTestVars(testExpr)[0]
             testResNode.maybeNone(v)
         return testResNode
 
@@ -87,26 +122,14 @@ class NoneVisitor(ast.NodeVisitor):
     def callerShouldntBeNone(self, cfNode, callNode):
         if isinstance(callNode.func, Attribute):
             attr = callNode.func
-            callerName = attr.value.id
-            cfNode.shouldntBeNone(callerName)
+            if isinstance(attr.value, Name):
+                callerName = attr.value.id
+                cfNode.shouldntBeNone(callerName)
 
     def execCall(self, cfNode, callNode):
         self.callerShouldntBeNone(cfNode, callNode)
         resNodes = self.execStmts([cfNode], callNode.args)
         return resNodes
-
-    def isNoneTest(self, testExpr):
-        if isinstance(testExpr, Compare):
-            return True
-        return False
-
-    def extractTestVars(self, testExpr):
-        possible_vars = [testExpr.left] + testExpr.comparators
-        vars = [i.id for i in possible_vars if isinstance(i, Name)]
-        return vars
-            
-    def isNone(self, valNode):
-        return isinstance(valNode, Name) and valNode.id == "None"
 
     def addErrors(self, cft):
         for error in cft.computeErrors():
