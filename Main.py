@@ -3,7 +3,8 @@ import sys
 
 from NoneVisitor import *
 
-dirName = '/Users/dillon/PythonWorkspace/pandas'
+dirName = '/Users/dillon/PythonWorkspace/httpie'
+
 x = NoneVisitor()
 numExceptions = 0
 for root, dirs, files in os.walk(dirName):
@@ -16,7 +17,7 @@ for root, dirs, files in os.walk(dirName):
                 x.visit(parsedFile)
             except Exception, e:
                 numExceptions += 1
-                print 'Could not parse file, exception: %s' % e
+                print 'Error: Could not parse file, exception: %s' % e
 x.printErrors()
 print ''
 print 'Number of exceptions', numExceptions
