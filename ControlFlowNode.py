@@ -58,10 +58,22 @@ class ControlFlowNode():
             childNode.walkCFGComputingErrors(errors, valsCopy)
         return errors
 
+    def collectNodes(self):
+        allNodes = [self]
+        for child in self.children:
+            allNodes += child.collectNodes()
+        return allNodes
+
     def computeErrors(self):
+        allNodes = self.collectNodes()
+        liveInLiveOut = noneDataFlowAnalysis(allNodes)
+        maybeNoneIn = liveInLiveOut[0]
+        maybeNoneOut = liveInLiveOut[1]
         errors = set()
-        varValues = {}
-        self.walkCFGComputingErrors(errors, varValues)
+        for node in allNodes:
+            for var in maybeNoneIn[node]:
+                if node.dereferences[var]:
+                    errors.add(node.errorString(var))
         return errors
 
 class Actions:
@@ -69,3 +81,12 @@ class Actions:
 
 class VarValues:
     MaybeNone, NotNone = range(2)
+
+def noneDataFlowAnalysis(nodes):
+    liveIn = {}
+    liveOut = {}
+    for node in nodes:
+        liveIn[node] = set()
+        liveOut[node] = set()
+    
+    return (liveIn, liveOut)
