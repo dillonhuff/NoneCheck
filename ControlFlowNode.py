@@ -31,15 +31,18 @@ class ControlFlowNode():
     def errorString(self, var):
         return self.fileName + ': ' + self.funcName + ': ' + var + ' may be none'
 
-    def collectNodes(self, nodes):
+    def collectNodes(self, added, nodes):
         if not self in nodes:
             nodes.add(self)
+            added.add(self)
         for child in self.children:
-            child.collectNodes(nodes)
+            if not child in added:
+                child.collectNodes(added, nodes)
 
     def computeErrors(self):
         allNodes = set()
-        self.collectNodes(allNodes)
+        added = set()
+        self.collectNodes(added, allNodes)
         allNodes = list(allNodes)
         print 'Number of nodes', len(allNodes)
         liveInLiveOut = noneDataFlowAnalysis(allNodes)
@@ -81,7 +84,6 @@ def noneDataFlowAnalysis(nodes):
     oldLiveIn = {}
     oldLiveOut = {}
     while True:
-        print 'iter'
         for node in nodes:
             oldLiveIn[node] = copy(liveIn[node])
             oldLiveOut[node] = copy(liveOut[node])

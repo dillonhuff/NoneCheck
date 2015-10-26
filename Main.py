@@ -3,7 +3,7 @@ import sys
 
 from NoneVisitor import *
 
-dirName = '/Users/dillon/PythonWorkspace/Bugs/NoneCheck/cases'
+dirName = '/Users/dillon/PythonWorkspace/'
 
 x = NoneVisitor()
 numExceptions = 0

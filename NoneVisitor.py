@@ -115,20 +115,18 @@ class NoneVisitor(ast.NodeVisitor):
         return cfNode.newChild()
 
     def execAssign(self, cfNode, assignNode):
-        return cfNode.newChild()
-        # print 'assign'
-        # newNode = cfNode.newChild()
-        # valNode = assignNode.value
-        # if isNone(valNode):
-        #     for idNode in assignNode.targets:
-        #         if isinstance(idNode, Name):
-        #             newNode.setNone(idNode.id)
-        #     return newNode
-        # else:
-        #     for idNode in assignNode.targets:
-        #         if isinstance(idNode, Name):
-        #             newNode.setNotNone(idNode.id)
-        #     return newNode #self.execNode(newNode, valNode)
+        newNode = cfNode.newChild()
+        valNode = assignNode.value
+        if isNone(valNode):
+            for idNode in assignNode.targets:
+                if isinstance(idNode, Name):
+                    newNode.setNone(idNode.id)
+            return newNode
+        else:
+            for idNode in assignNode.targets:
+                if isinstance(idNode, Name):
+                    newNode.setNotNone(idNode.id)
+            return self.execNode(newNode, valNode)
 
     def execIf(self, cfNode, ifNode):
         test = ifNode.test
