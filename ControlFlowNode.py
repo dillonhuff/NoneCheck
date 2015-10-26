@@ -72,9 +72,23 @@ class ControlFlowNode():
         errors = set()
         for node in allNodes:
             for var in maybeNoneIn[node]:
-                if node.dereferences[var]:
+                if var in node.use():
                     errors.add(node.errorString(var))
         return errors
+
+    def use(self):
+        varsUsed = set()
+        for action in self.actions:
+            if action[0] == Actions.Deref:
+                varsUsed.add(action[1])
+        return varsUsed
+
+    def define(self):
+        varsDefined = set()
+        for action in self.actions:
+            if action[0] == Actions.SetNone or action[0] == Actions.CheckNone:
+                varsDefined.add(action[1])
+        return varsDefined
 
 class Actions:
     SetNone, SetNotNone, Deref, CheckNone = range(4)
@@ -88,5 +102,16 @@ def noneDataFlowAnalysis(nodes):
     for node in nodes:
         liveIn[node] = set()
         liveOut[node] = set()
-    
+    oldLiveIn = {}
+    oldLiveOut = {}
+    while True:
+        for node in nodes:
+            oldLiveIn[node] = copy(liveIn[node])
+            oldLiveOut[node] = copy(liveOut[node])
+            liveIn[node] = node.use().union(liveOut[node].difference(node.define()))
+        if noChange(oldLiveIn, oldLiveOut, liveIn, liveOut):
+            break
     return (liveIn, liveOut)
+
+def noChange(oldIn, oldOut, newIn, newOut):
+    return oldIn == newIn and oldOut == newOut
