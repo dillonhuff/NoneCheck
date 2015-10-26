@@ -42,11 +42,15 @@ def noError():
 def noErrorIs():
     testAssert(countErrors('./cases/Test5.py') == 0, 'noErrorIs')
 
+def oneFuncallNoError():
+    testAssert(countErrors('./cases/Test6.py') == 0, 'oneFuncallNoError')
+
 def allTests():
     setNone()
     basicTest()
     twoErrors()
     noError()
     noErrorIs()
+    oneFuncallNoError()
 
 allTests()

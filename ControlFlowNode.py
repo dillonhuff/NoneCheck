@@ -31,41 +31,17 @@ class ControlFlowNode():
     def errorString(self, var):
         return self.fileName + ': ' + self.funcName + ': ' + var + ' may be none'
 
-    def executeAction(self, action, errors, varValues):
-        instr = action[0]
-        var = action[1]
-        if instr == Actions.SetNone:
-            varValues[var] = VarValues.MaybeNone
-        elif instr == Actions.SetNotNone:
-            varValues[var] = VarValues.NotNone
-        elif instr == Actions.CheckNone:
-            if var in varValues and varValues[var] == VarValues.NotNone:
-                errors.add(self.errorString(var))
-            varValues[var] = VarValues.MaybeNone
-        elif instr == Actions.Deref:
-            if var in varValues and varValues[var] == VarValues.MaybeNone:
-                errors.add(self.errorString(var))
-            else:
-                varValues[var] = VarValues.NotNone
-        else:
-            raise ValueException('ExecuteAction: Unsupported action')
-
-    def walkCFGComputingErrors(self, errors, varValues):
-        for action in self.actions:
-            self.executeAction(action, errors, varValues)
-        valsCopy = copy(varValues)
-        for childNode in self.children:
-            childNode.walkCFGComputingErrors(errors, valsCopy)
-        return errors
-
-    def collectNodes(self):
-        allNodes = [self]
+    def collectNodes(self, nodes):
+        if not self in nodes:
+            nodes.add(self)
         for child in self.children:
-            allNodes += child.collectNodes()
-        return allNodes
+            child.collectNodes(nodes)
 
     def computeErrors(self):
-        allNodes = self.collectNodes()
+        allNodes = set()
+        self.collectNodes(allNodes)
+        allNodes = list(allNodes)
+        print 'Number of nodes', len(allNodes)
         liveInLiveOut = noneDataFlowAnalysis(allNodes)
         maybeNoneIn = liveInLiveOut[0]
         maybeNoneOut = liveInLiveOut[1]
@@ -105,13 +81,21 @@ def noneDataFlowAnalysis(nodes):
     oldLiveIn = {}
     oldLiveOut = {}
     while True:
+        print 'iter'
         for node in nodes:
             oldLiveIn[node] = copy(liveIn[node])
             oldLiveOut[node] = copy(liveOut[node])
             liveIn[node] = node.use().union(liveOut[node].difference(node.define()))
+            liveOut[node] = freshLiveOut(liveIn, node)
         if noChange(oldLiveIn, oldLiveOut, liveIn, liveOut):
             break
     return (liveIn, liveOut)
+
+def freshLiveOut(liveIn, node):
+    newLiveOut = set()
+    for child in node.children:
+        newLiveOut.union(liveIn[child])
+    return newLiveOut
 
 def noChange(oldIn, oldOut, newIn, newOut):
     return oldIn == newIn and oldOut == newOut
