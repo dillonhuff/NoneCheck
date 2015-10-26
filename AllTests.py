@@ -45,6 +45,9 @@ def noErrorIs():
 def oneFuncallNoError():
     testAssert(countErrors('./cases/Test6.py') == 0, 'oneFuncallNoError')
 
+def oneForwardError():
+    testAssert(countErrors('./cases/Test7.py') == 1, 'oneForwardError')
+
 def allTests():
     setNone()
     basicTest()
@@ -52,5 +55,6 @@ def allTests():
     noError()
     noErrorIs()
     oneFuncallNoError()
+    oneForwardError()
 
 allTests()

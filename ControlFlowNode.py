@@ -44,14 +44,14 @@ class ControlFlowNode():
         added = set()
         self.collectNodes(added, allNodes)
         allNodes = list(allNodes)
-        print 'Number of nodes', len(allNodes)
         liveInLiveOut = noneDataFlowAnalysis(allNodes)
         maybeNoneIn = liveInLiveOut[0]
         maybeNoneOut = liveInLiveOut[1]
         errors = set()
         for node in allNodes:
             for var in maybeNoneIn[node]:
-                if var in node.use():
+                if var in node.define():
+                    print 'error'
                     errors.add(node.errorString(var))
         return errors
 
@@ -96,7 +96,7 @@ def noneDataFlowAnalysis(nodes):
 def freshLiveOut(liveIn, node):
     newLiveOut = set()
     for child in node.children:
-        newLiveOut.union(liveIn[child])
+        newLiveOut = newLiveOut.union(liveIn[child])
     return newLiveOut
 
 def noChange(oldIn, oldOut, newIn, newOut):
